@@ -11,7 +11,6 @@ Query Windows event logs from the command line.
 
 #>
 
-[bool] $script:menu2called = $false
 
 function Invoke-LogonLog {
     param (
@@ -101,24 +100,15 @@ function Get-Menu2() {
     [string] $local:ans3 = "" 
     [string] $local:ans4 = ""
 
-    if ($script:menu2called -eq $false) {
-        Clear-Host                
-    }    
-
-    Write-Host "[0] Quit"
-    Write-Host "[1] Detail"
-    Write-Host "[2] Stats"
+    Write-Host ""
+    Write-Host "[0] Quit  [1] Detail  [2] Stats"
 
     $ans3 = Read-Host "Entry"
 
     if ( $ans3 -eq "0" ) { Clear-Host; Write-Host "Bye"; `
         Return "0", "0" }
 
-    if ($script:menu2called -eq $false) {
-        Clear-Host        
-        $script:menu2called = $true
-    }    
-
+    Write-Host ""
     $ans4 = Read-Host "How many"
 
     if ( $ans4 -eq "0" ) { Clear-Host; Write-Host "Bye"; `

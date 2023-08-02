@@ -1,3 +1,3 @@
 
 # ipmo -name LoadLog
-# Import-Module -Name LoadLog 
+Import-Module -Name LoadLog 
