@@ -66,6 +66,131 @@ function Invoke-LogonLog {
     
 }
 
+function Invoke-LogonOthLog {
+    param (
+        [string]$local:a1,  # System/File
+        [string]$local:a3,  # Detail/Stats
+        [string]$local:a4   # Count
+    )    
+
+    [string] $local:TypeKey = ""
+    [string] $local:TypeVal = ""
+
+    # Set System or File query
+    if ($a1 -eq 1){
+        $local:TypeKey = "LogName"
+        $local:TypeVal = "Security"
+    } elseif ($a1 -eq 2) {
+        $local:TypeKey = "Path"
+        $local:TypeVal = "Security.evtx"
+    } else {
+        Write-Host "No go"
+    }
+
+    # Log Detail 
+    if ($a3 -eq 1) {
+        Get-Winevent @{ $TypeKey = "$TypeVal"; Id=4625,4634,4647,4672,4779} `
+        | Where-Object {$_.Message -notmatch "Logon Type:\s+5"} `
+        | Select-Object -First $a4 `
+        | Select-Object TimeCreated, Id, TaskDisplayName, `
+        @{Label='AccountName'; Expression={$_.Properties[1].Value}}, `
+        @{Label='AccountDomain'; Expression={$_.Properties[2].Value}}, `
+        @{Label='LogonId'; Expression={$_.Properties[3].Value}}, `
+        @{Label='LogonType'; Expression={$_.Properties[4].Value}} `
+        | Format-Table      
+    }        
+
+
+}
+
+function Invoke-ProcLog {
+    param (
+        [string]$local:a1,  # System/File
+        [string]$local:a3,  # Detail/Stats
+        [string]$local:a4   # Count
+    )    
+
+    [string] $local:TypeKey = ""
+    [string] $local:TypeVal = ""
+
+    # Set System or File query
+    if ($a1 -eq 1){
+        $local:TypeKey = "LogName"
+        $local:TypeVal = "Security"
+    } elseif ($a1 -eq 2) {
+        $local:TypeKey = "Path"
+        $local:TypeVal = "Security.evtx"
+    } else {
+        Write-Host "No go"
+    }   
+    
+    # Log Detail 
+    if ($a3 -eq 1) {
+        Get-Winevent @{ $TypeKey = "$TypeVal"; Id=4688,4689} `
+        | Select-Object -First $a4 `
+        | Select-Object TimeCreated, Id, ProcessId, TaskDisplayName , `
+        @{Label='AccountName'; Expression={$_.Properties[1].Value}}, `
+        @{Label='AccountDomain'; Expression={$_.Properties[2].Value}}, `
+        @{Label='LogonId'; Expression={$_.Properties[3].Value}}, `
+        @{Label='ProcessName'; Expression={$_.Properties[5].Value}}
+        | Format-List
+    }    
+
+        # Log Stats
+        if ($a3 -eq 2) {
+            Get-Winevent @{ $TypeKey = "$TypeVal"; Id=4688,4689} `
+            | Select-Object -First $a4 `
+            | Select-Object Id, `
+            @{Label='ProcessName'; Expression={$_.Properties[5].Value}} `
+            | Group-Object -Property Id, ProcessName -NoElement `
+            | Sort-Object -Property Count -Descending    
+            | Format-Table
+        }
+}
+
+function Invoke-SrvcLog {
+    param (
+        [string]$local:a1,  # System/File
+        [string]$local:a3,  # Detail/Stats
+        [string]$local:a4   # Count
+    )    
+
+    [string] $local:TypeKey = ""
+    [string] $local:TypeVal = ""
+
+    # Set System or File query
+    if ($a1 -eq 1){
+        $local:TypeKey = "LogName"
+        $local:TypeVal = "System"
+    } elseif ($a1 -eq 2) {
+        $local:TypeKey = "Path"
+        $local:TypeVal = "System.evtx"
+    } else {
+        Write-Host "No go"
+    }   
+    
+    # Log Detail 
+    if ($a3 -eq 1) {
+        Get-Winevent @{ $TypeKey = "$TypeVal"; Id=7030,7045} `
+        | Select-Object -First $a4 `
+        | Select-Object TimeCreated, Id, ProcessId, Level, ProviderName, `
+        @{Label='ServiceName'; Expression={$_.Properties[0].Value}}, `
+        @{Label='ImagePath'; Expression={$_.Properties[1].Value}}
+        | Format-List
+    }    
+
+    # Log Stats
+    if ($a3 -eq 2) {
+        Get-Winevent @{ $TypeKey = "$TypeVal"; Id=7030,7045} `
+        | Select-Object -First $a4 `
+        | Select-Object Id, ProcessId, @{Label='ServiceName'; Expression={$_.Properties[0].Value}} `
+        | Group-Object -Property Id, ProcessId, ServiceName -NoElement`
+        | Sort-Object -Property Count -Descending    
+        | Format-Table
+    }
+    
+}
+
 function Get-Menu1 {
     [string] $local:ans1 = ""
     [string] $local:ans2 = "" 
@@ -85,7 +210,9 @@ function Get-Menu1 {
 
     Write-Host "[0] Quit"
     Write-Host "[1] Logon"
-    Write-Host "[2] Process"
+    Write-Host "[2] Logon/Logoff Other"
+    Write-Host "[3] Process"
+    Write-Host "[4] Service Created"
 
     $ans2 = Read-Host "Entry"
 
@@ -191,6 +318,18 @@ function Get-LoadLog() {
         
         if ($ans2 -eq 1) {
             Invoke-LogonLog $ans1 $ans3 $ans4
+        }
+
+        if ($ans2 -eq 2) {
+            Invoke-LogonOthLog $ans1 $ans3 $ans4
+        }
+
+        if ($ans2 -eq 3) {
+            Invoke-ProcLog $ans1 $ans3 $ans4
+        }
+
+        if ($ans2 -eq 4) {
+            Invoke-SrvcLog $ans1 $ans3 $ans4
         }
 
         $ans3, $ans4 = Get-Menu2
