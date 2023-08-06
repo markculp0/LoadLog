@@ -42,7 +42,8 @@ function Invoke-LogonLog {
         @{Label='LogonType'; Expression={$_.Properties[8].Value}}, `
         @{Label='ProcessName'; Expression={$_.Properties[9].Value}}, `
         @{Label='UserName'; Expression={$_.Properties[5].Value}}, `
-        @{Label='DomainName'; Expression={$_.Properties[6].Value}} `
+        @{Label='DomainName'; Expression={$_.Properties[6].Value}}, `
+        @{Label='LogonId'; Expression={$_.Properties[7].Value}} `
         | Format-Table      
     }        
     
@@ -100,7 +101,21 @@ function Invoke-LogonOthLog {
         | Format-Table      
     }        
 
-
+    # Log Stats
+    if ($a3 -eq 2) {
+        Get-Winevent @{ $TypeKey = "$TypeVal"; Id=4625,4634,4647,4672,4779} `
+        | Select-Object -First $a4 `
+        | Select-Object Id, `
+        @{Label='AccountName'; Expression={$_.Properties[1].Value}}, `
+        @{Label='LogonType'; Expression={$_.Properties[4].Value}} `
+        | Group-Object -Property Id, AccountName, LogonType -NoElement `
+        | Sort-Object -Property Count -Descending    
+        | Format-Table
+        
+        Write-Host "4625 - Failed Logon     4672 - SpecPriv Logon"
+        Write-Host "4634 - Account Logoff   4779 - RDP/FastSwitch Logoff"
+        Write-Host "4647 - User Logoff"
+    }
 }
 
 function Invoke-ProcLog {
@@ -144,7 +159,11 @@ function Invoke-ProcLog {
             @{Label='ProcessName'; Expression={$_.Properties[5].Value}} `
             | Group-Object -Property Id, ProcessName -NoElement `
             | Sort-Object -Property Count -Descending    
-            | Format-Table
+            # | Format-Table
+
+            Write-Host ""
+            Write-Host "4688 - Process Created"
+            Write-Host "4689 - Process Exited"
         }
 }
 
@@ -184,10 +203,14 @@ function Invoke-SrvcLog {
         Get-Winevent @{ $TypeKey = "$TypeVal"; Id=7030,7045} `
         | Select-Object -First $a4 `
         | Select-Object Id, ProcessId, @{Label='ServiceName'; Expression={$_.Properties[0].Value}} `
-        | Group-Object -Property Id, ProcessId, ServiceName -NoElement`
-        | Sort-Object -Property Count -Descending    
+        | Group-Object -Property Id, ProcessId, ServiceName -NoElement `
+        | Sort-Object -Property Count -Descending `
         | Format-Table
+
+        Write-Host "7030 - Service/Desktop Interaction"
+        Write-Host "7045 - New Service Install"
     }
+
     
 }
 
