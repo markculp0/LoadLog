@@ -117,7 +117,7 @@ function Invoke-LogonOthLog {
         @{Label='LogonType'; Expression={$_.Properties[4].Value}} `
         | Group-Object -Property Id, AccountName, LogonType -NoElement `
         | Sort-Object -Property Count -Descending    
-        | Format-Table
+        | Format-Table -AutoSize
         
         Write-Host "4625 - Failed Logon     4672 - SpecPriv Logon"
         Write-Host "4634 - Account Logoff   4779 - RDP/FastSwitch Logoff"
@@ -150,21 +150,21 @@ function Invoke-ProcLog {
     
     # Log Detail 
     if ($a3 -eq 1) {
-        Get-Winevent @{ $TypeKey = "$TypeVal"; Id=4688,4689} `
+        Get-Winevent @{ $TypeKey = "$TypeVal"; Id=4688} `
         | Select-Object -First $a4 `
         | Select-Object TimeCreated, Id, ProcessId, TaskDisplayName , `
         @{Label='AccountName'; Expression={$_.Properties[1].Value}}, `
         @{Label='AccountDomain'; Expression={$_.Properties[2].Value}}, `
         @{Label='LogonId'; Expression={$_.Properties[3].Value}}, `
         @{Label='ProcessName'; Expression={$_.Properties[5].Value}}
-        | Format-List
+        | Format-Table -AutoSize
 
         Write-Host "Get-Winevent @{$TypeKey =""$TypeVal""; Id=4688,4689}"
     }    
 
         # Log Stats
         if ($a3 -eq 2) {
-            Get-Winevent @{ $TypeKey = "$TypeVal"; Id=4688,4689} `
+            Get-Winevent @{ $TypeKey = "$TypeVal"; Id=4688} `
             | Select-Object -First $a4 `
             | Select-Object Id, `
             @{Label='ProcessName'; Expression={$_.Properties[5].Value}} `
@@ -208,7 +208,7 @@ function Invoke-SrvcLog {
         | Select-Object TimeCreated, Id, ProcessId, Level, ProviderName, `
         @{Label='ServiceName'; Expression={$_.Properties[0].Value}}, `
         @{Label='ImagePath'; Expression={$_.Properties[1].Value}}
-        | Format-List
+        | Format-Table -AutoSize
 
         Write-Host "Get-Winevent @{$TypeKey=""$TypeVal""; Id=7030,7045}"
     }    
@@ -245,6 +245,14 @@ function Get-Menu1 {
 
     if ( $ans1 -eq "0" ) { Clear-Host; Write-Host "Bye"; `
         Return "0", "0" }
+    elseif ($ans1 -notin @(1,2)) {
+        while ($ans1 -notin @(1,2)) {
+            Clear-Host
+            Write-Host "Not a correct choice:"
+            Write-Host "[1] System [2] File"
+            $ans1 = Read-Host "Entry"
+        }
+    }
 
     Clear-Host
 
@@ -257,7 +265,16 @@ function Get-Menu1 {
     $ans2 = Read-Host "Entry"
 
     if ( $ans2 -eq "0" ) { Clear-Host; Write-Host "Bye"; `
-        Return "0", "0" }            
+        Return "0", "0" }        
+    elseif ($ans2 -notin @(1,2,3,4)) {
+        while ($ans2 -notin @(1,2,3,4)) {
+            Clear-Host
+            Write-Host "Not a correct choice:"
+            Write-Host "[1] Logon [2] Logon/Logoff [3] Process [4] Service Created"
+            $ans2 = Read-Host "Entry"
+        }
+    }    
+        
     
     return $ans1, $ans2        
 }
@@ -274,6 +291,15 @@ function Get-Menu2() {
 
     if ( $ans3 -eq "0" ) { Clear-Host; Write-Host "Bye"; `
         Return "0", "0" }
+    elseif ($ans3 -notin @(1,2)) {
+        while ($ans3 -notin @(1,2)) {
+            Clear-Host
+            Write-Host "Not a correct choice:"
+            Write-Host "[1] Detail  [2] Stats"
+            $ans3 = Read-Host "Entry"
+        }
+    } 
+
 
     Write-Host ""
     $ans4 = Read-Host "How many"
@@ -294,14 +320,15 @@ function Get-LoadLog() {
     [string] $local:ans1 = ""
     [string] $local:ans2 = "" 
     [string] $local:ans3 = "" 
-    [string] $local:ans4 = ""
-    
-    
-
-    # $ans1, $ans2, $ans3, $ans4 = Get-Menu
+    [string] $local:ans4 = ""        
 
     $ans1, $ans2 = Get-Menu1
-    $ans3, $ans4 = Get-Menu2
+
+    if (($ans1 -eq 0) -or ($ans2 -eq 0)) {
+        return
+    } else{
+        $ans3, $ans4 = Get-Menu2
+    }
 
     while ($ans3 -ne "0") {
         
@@ -323,9 +350,6 @@ function Get-LoadLog() {
 
         $ans3, $ans4 = Get-Menu2
     }
-
-
-
 
 
 }
