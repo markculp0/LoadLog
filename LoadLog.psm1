@@ -11,10 +11,43 @@ Query Windows event logs from the command line.
 
 #>
 
+function Set-SecurityLogType {
+    param(
+        [string]$local:a1,  # System/File
+        [string]$local:a2   # Log Type
+    )
 
+    [string] $local:TypeKey = ""
+    [string] $local:TypeVal = ""
+
+    # Set TypeKey
+    if ($a1 -eq 1){
+        $local:TypeKey = "LogName"        
+    } elseif ($a1 -eq 2) {
+        $local:TypeKey = "Path"        
+    } else {
+        Write-Host "No go"
+    }
+
+    # Set TypeVal
+    if ($a2 -in @(1,2,3,5) -and ($a1 -eq 1)) {
+        $local:TypeVal = "Security"
+    } elseif ($a2 -in @(1,2,3,5) -and ($a1 -eq 2)) {
+        $local:TypeVal = "Security.evtx"
+    } elseif ($a2 -in @(4) -and ($a1 -eq 1)) {
+        $local:TypeVal = "System"
+    } elseif ($a2 -in @(4) -and ($a1 -eq 2)) {
+        $local:TypeVal = "System.evtx"
+    }
+
+    return $TypeKey, $TypeVal
+}
+
+# 1. Logons
 function Invoke-LogonLog {
     param (
         [string]$local:a1,  # System/File
+        [string]$local:a2,  # Log Type
         [string]$local:a3,  # Detail/Stats
         [string]$local:a4   # Count
     )    
@@ -22,16 +55,8 @@ function Invoke-LogonLog {
     [string] $local:TypeKey = ""
     [string] $local:TypeVal = ""
 
-    # Set System or File query
-    if ($a1 -eq 1){
-        $local:TypeKey = "LogName"
-        $local:TypeVal = "Security"
-    } elseif ($a1 -eq 2) {
-        $local:TypeKey = "Path"
-        $local:TypeVal = "Security.evtx"
-    } else {
-        Write-Host "No go"
-    }
+    # Set Security log type
+    $TypeKey, $TypeVal = Set-SecurityLogType $a1 $a2
 
     # Log Detail 
     if ($a3 -eq 1) {
@@ -46,7 +71,6 @@ function Invoke-LogonLog {
         @{Label='LogonId'; Expression={$_.Properties[7].Value}} `
         | Format-Table    
                 
-        Write-Host "Get-Winevent @{$TypeKey =""$TypeVal""; Id=4624}"        
     }        
     
     # Log Stats
@@ -61,20 +85,21 @@ function Invoke-LogonLog {
         | Group-Object -Property Id, LogonType, ProcessName, UserName -NoElement `
         | Sort-Object -Property Count -Descending    
         | Format-Table -AutoSize
-
-        Write-Host "2 - User Logon      8 - Network ClearText"
-        Write-Host "3 - Network Logon   9 - NewCredentials "
-        Write-Host "4 - Batch Logon    10 - Remote Interactive "
-        Write-Host "7 - Unlock         11 - Cached Interactive "
-        Write-Host ""
-        Write-Host "Get-Winevent @{$TypeKey =""$TypeVal""; Id=4624}"        
+ 
     }
+
+    Write-Host "2 - User Logon      4 - Batch Logon    9 - NewCredentials       11 - Cached Interactive"
+    Write-Host "3 - Network Logon   7 - Unlock        10 - Remote Interactive"
+    Write-Host ""
+    Write-Host "Get-Winevent @{$TypeKey =""$TypeVal""; Id=4624}"           
     
 }
 
+# 2. Logons/Logoffs
 function Invoke-LogonOthLog {
     param (
         [string]$local:a1,  # System/File
+        [string]$local:a2,  # Log Type
         [string]$local:a3,  # Detail/Stats
         [string]$local:a4   # Count
     )    
@@ -82,16 +107,8 @@ function Invoke-LogonOthLog {
     [string] $local:TypeKey = ""
     [string] $local:TypeVal = ""
 
-    # Set System or File query
-    if ($a1 -eq 1){
-        $local:TypeKey = "LogName"
-        $local:TypeVal = "Security"
-    } elseif ($a1 -eq 2) {
-        $local:TypeKey = "Path"
-        $local:TypeVal = "Security.evtx"
-    } else {
-        Write-Host "No go"
-    }
+    # Set Security log type
+    $TypeKey, $TypeVal = Set-SecurityLogType $a1 $a2
 
     # Log Detail 
     if ($a3 -eq 1) {
@@ -104,8 +121,7 @@ function Invoke-LogonOthLog {
         @{Label='LogonId'; Expression={$_.Properties[3].Value}}, `
         @{Label='LogonType'; Expression={$_.Properties[4].Value}} `
         | Format-Table 
-        
-        Write-Host "Get-Winevent @{$TypeKey =""$TypeVal""; Id=4625,4634,4647,4672,4779}"
+                
     }        
 
     # Log Stats
@@ -119,17 +135,19 @@ function Invoke-LogonOthLog {
         | Sort-Object -Property Count -Descending    
         | Format-Table -AutoSize
         
-        Write-Host "4625 - Failed Logon     4672 - SpecPriv Logon"
-        Write-Host "4634 - Account Logoff   4779 - RDP/FastSwitch Logoff"
-        Write-Host "4647 - User Logoff"
-        Write-Host ""
-        Write-Host "Get-Winevent @{$TypeKey =""$TypeVal""; Id=4625,4634,4647,4672,4779}"
     }
+
+    Write-Host "4625 - Failed Logon     4647 - User Logoff      4779 - RDP/FastSwitch Logoff"
+    Write-Host "4634 - Account Logoff   4672 - SpecPriv Logon"
+    Write-Host ""
+    Write-Host "Get-Winevent @{$TypeKey =""$TypeVal""; Id=4625,4634,4647,4672,4779}"    
 }
 
+# 3. Process Logs
 function Invoke-ProcLog {
     param (
         [string]$local:a1,  # System/File
+        [string]$local:a2,  # Log Type
         [string]$local:a3,  # Detail/Stats
         [string]$local:a4   # Count
     )    
@@ -137,16 +155,8 @@ function Invoke-ProcLog {
     [string] $local:TypeKey = ""
     [string] $local:TypeVal = ""
 
-    # Set System or File query
-    if ($a1 -eq 1){
-        $local:TypeKey = "LogName"
-        $local:TypeVal = "Security"
-    } elseif ($a1 -eq 2) {
-        $local:TypeKey = "Path"
-        $local:TypeVal = "Security.evtx"
-    } else {
-        Write-Host "No go"
-    }   
+    # Set Security log type
+    $TypeKey, $TypeVal = Set-SecurityLogType $a1 $a2
     
     # Log Detail 
     if ($a3 -eq 1) {
@@ -158,8 +168,7 @@ function Invoke-ProcLog {
         @{Label='LogonId'; Expression={$_.Properties[3].Value}}, `
         @{Label='ProcessName'; Expression={$_.Properties[5].Value}}
         | Format-Table -AutoSize
-
-        Write-Host "Get-Winevent @{$TypeKey =""$TypeVal""; Id=4688,4689}"
+        
     }    
 
         # Log Stats
@@ -172,17 +181,18 @@ function Invoke-ProcLog {
             | Sort-Object -Property Count -Descending    
             | Format-Table -AutoSize
 
-            Write-Host ""
-            Write-Host "4688 - Process Created"
-            Write-Host "4689 - Process Exited"
-            Write-Host ""
-            Write-Host "Get-Winevent @{$TypeKey =""$TypeVal""; Id=4688,4689}"
         }
+        
+        Write-Host "4688 - Process Created   4689 - Process Exited"        
+        Write-Host ""
+        Write-Host "Get-Winevent @{$TypeKey =""$TypeVal""; Id=4688,4689}"        
 }
 
+# 4. Service Logs 
 function Invoke-SrvcLog {
     param (
         [string]$local:a1,  # System/File
+        [string]$local:a2,  # Log Type
         [string]$local:a3,  # Detail/Stats
         [string]$local:a4   # Count
     )    
@@ -190,16 +200,7 @@ function Invoke-SrvcLog {
     [string] $local:TypeKey = ""
     [string] $local:TypeVal = ""
 
-    # Set System or File query
-    if ($a1 -eq 1){
-        $local:TypeKey = "LogName"
-        $local:TypeVal = "System"
-    } elseif ($a1 -eq 2) {
-        $local:TypeKey = "Path"
-        $local:TypeVal = "System.evtx"
-    } else {
-        Write-Host "No go"
-    }   
+    $TypeKey, $TypeVal = Set-SecurityLogType $a1 $a2
     
     # Log Detail 
     if ($a3 -eq 1) {
@@ -209,8 +210,7 @@ function Invoke-SrvcLog {
         @{Label='ServiceName'; Expression={$_.Properties[0].Value}}, `
         @{Label='ImagePath'; Expression={$_.Properties[1].Value}}
         | Format-Table -AutoSize
-
-        Write-Host "Get-Winevent @{$TypeKey=""$TypeVal""; Id=7030,7045}"
+        
     }    
 
     # Log Stats
@@ -222,13 +222,49 @@ function Invoke-SrvcLog {
         | Sort-Object -Property Count -Descending `
         | Format-Table -AutoSize
 
-        Write-Host "7030 - Service/Desktop Interaction"
-        Write-Host "7045 - New Service Install"
-        Write-Host ""
-        Write-Host "Get-Winevent @{$TypeKey=""$TypeVal""; Id=7030,7045}"
+    }    
+
+    Write-Host "7030 - Service/Desktop Interaction    7045 - New Service Install"    
+    Write-Host ""
+    Write-Host "Get-Winevent @{$TypeKey=""$TypeVal""; Id=7030,7045}"    
+}
+
+# 5. Account Logs
+function Invoke-AcctLog {
+    param (
+        [string]$local:a1,  # System/File
+        [string]$local:a2,  # Log Type
+        [string]$local:a3,  # Detail/Stats
+        [string]$local:a4   # CountOptionalParameters
+    )
+
+    [string] $local:TypeKey = ""
+    [string] $local:TypeVal = ""
+
+    $TypeKey, $TypeVal = Set-SecurityLogType $a1 $a2
+
+    # Log Detail 
+    if ($a3 -eq 1) {
+        Get-Winevent @{ $TypeKey = "$TypeVal"; Id=4720,4722, 4727, 4728, 4732, 4735, 4737, 4738, 4755} `
+        | Select-Object -First $a4 `
+        | Select-Object TimeCreated, Id
+        | Format-Table -AutoSize
     }
 
-    
+    # Log Stats
+    if ($a3 -eq 2) {
+        Get-Winevent @{ $TypeKey = "$TypeVal"; Id=4720,4722, 4727, 4728, 4732, 4735, 4737, 4738, 4755} `
+        | Select-Object -First $a4 `
+        | Group-Object -Property Id
+        | Sort-Object -Property Count -Descending `
+        | Format-Table -AutoSize
+    }
+
+    Write-Host "4720 - UserAcctCreated  4728 - MemAddGlobSecGrp  4737 - SecEnabledGlobGrpChg"
+    Write-Host "4722 - UsrAcctEnable    4732 - MemAddLocSecGrp   4738 - UsrAcctChg"
+    Write-Host "4727 - ResetPasswd      4735 - SecLocGrpChg      4755 - SecUnivGrpChg"
+    Write-Host ""
+    Write-Host "Get-Winevent @{$TypeKey=""$TypeVal""; Id=4720,4722, 4727, 4728, 4732, 4735, 4737, 4738, 4755}"        
 }
 
 function Get-Menu1 {
@@ -256,26 +292,23 @@ function Get-Menu1 {
 
     Clear-Host
 
-    Write-Host "[0] Quit"
-    Write-Host "[1] Logon"
-    Write-Host "[2] Logon/Logoff Other"
+    Write-Host "[0] Quit            [4] Service Created"
+    Write-Host "[1] Logon           [5] Account Change"
+    Write-Host "[2] Logon/Logoff"
     Write-Host "[3] Process"
-    Write-Host "[4] Service Created"
 
     $ans2 = Read-Host "Entry"
 
     if ( $ans2 -eq "0" ) { Clear-Host; Write-Host "Bye"; `
         Return "0", "0" }        
-    elseif ($ans2 -notin @(1,2,3,4)) {
-        while ($ans2 -notin @(1,2,3,4)) {
+    elseif ($ans2 -notin @(1,2,3,4,5)) {
+        while ($ans2 -notin @(1,2,3,4,5)) {
             Clear-Host
             Write-Host "Not a correct choice:"
             Write-Host "[1] Logon [2] Logon/Logoff [3] Process [4] Service Created"
             $ans2 = Read-Host "Entry"
         }
-    }    
-        
-    
+    }                
     return $ans1, $ans2        
 }
 
@@ -311,7 +344,7 @@ function Get-Menu2() {
 }
 
 # Write-Host "ANS1: " $ans1 # 1-System, 2-File
-# Write-Host "ANS2: " $ans2 # 1-Logon, 2-Process 
+# Write-Host "ANS2: " $ans2 # 1-Logon, 2-Process ..
 # Write-Host "ANS3: " $ans3 # 1-Detail, 2-Stats
 # Write-Host "ANS4: " $ans4 # Count  
 
@@ -333,19 +366,23 @@ function Get-LoadLog() {
     while ($ans3 -ne "0") {
         
         if ($ans2 -eq 1) {
-            Invoke-LogonLog $ans1 $ans3 $ans4
+            Invoke-LogonLog $ans1 $ans2 $ans3 $ans4
         }
 
         if ($ans2 -eq 2) {
-            Invoke-LogonOthLog $ans1 $ans3 $ans4
+            Invoke-LogonOthLog $ans1 $ans2 $ans3 $ans4
         }
 
         if ($ans2 -eq 3) {
-            Invoke-ProcLog $ans1 $ans3 $ans4
+            Invoke-ProcLog $ans1 $ans2 $ans3 $ans4
         }
 
         if ($ans2 -eq 4) {
-            Invoke-SrvcLog $ans1 $ans3 $ans4
+            Invoke-SrvcLog $ans1 $ans2 $ans3 $ans4
+        }
+
+        if ($ans2 -eq 5) {            
+            Invoke-AcctLog $ans1 $ans2 $ans3 $ans4
         }
 
         $ans3, $ans4 = Get-Menu2
