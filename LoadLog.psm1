@@ -42,6 +42,10 @@ function Set-SecurityLogType {
         $local:TypeVal = "Microsoft-Windows-TerminalServices-LocalSessionManager/Operational"
     } elseif ($a2 -in @(6) -and ($a1 -eq 2)) {
         $local:TypeVal = "Microsoft-Windows-TerminalServices-LocalSessionManager/Operational.evtx"
+    } elseif ($a2 -in @(7) -and ($a1 -eq 1)) {
+        $local:TypeVal = "Microsoft-Windows-Windows Defender/Operational"
+    } elseif ($a2 -in @(7) -and ($a1 -eq 2)) {
+        $local:TypeVal = "Microsoft-Windows-Windows Defender/Operational.evtx"
     }
 
     return $TypeKey, $TypeVal
@@ -271,6 +275,7 @@ function Invoke-AcctLog {
     Write-Host "Get-Winevent @{$TypeKey=""$TypeVal""; Id=4720,4722, 4727, 4728, 4732, 4735, 4737, 4738, 4755}"        
 }
 
+# 6. RDP
 function Invoke-Rdp {
     param (
         [string]$local:a1,  # System/File
@@ -284,29 +289,70 @@ function Invoke-Rdp {
 
     $TypeKey, $TypeVal = Set-SecurityLogType $a1 $a2
 
-        # Log Detail 
-        if ($a3 -eq 1) {
-            Get-Winevent @{ $TypeKey = "$TypeVal"; Id=21,22,23,24} `
-            | Select-Object -First $a4 `
-            | Select-Object TimeCreated, Id, MachineName,  UserId, `
-            @{Label='Address'; Expression={$_.Properties[2].Value}}, `
-            @{Label='User'; Expression={$_.Properties[0].Value}} `
-            | Format-Table -AutoSize
-        }
+    # Log Detail 
+    if ($a3 -eq 1) {
+        Get-Winevent @{ $TypeKey = "$TypeVal"; Id=21,22,23,24} `
+        | Select-Object -First $a4 `
+        | Select-Object TimeCreated, Id, MachineName,  UserId, `
+        @{Label='Address'; Expression={$_.Properties[2].Value}}, `
+        @{Label='User'; Expression={$_.Properties[0].Value}} `
+        | Format-Table -AutoSize
+    }
     
-        # Log Stats
-        if ($a3 -eq 2) {
-            Get-Winevent @{ $TypeKey = "$TypeVal"; Id=21,22,23,24} `
-            | Select-Object -First $a4 `
-            | Group-Object -Property Id, MachineName, UserId -NoElement `
-            | Sort-Object -Property Count -Descending `
-            | Format-Table -AutoSize
-        }
+    # Log Stats
+    if ($a3 -eq 2) {
+        Get-Winevent @{ $TypeKey = "$TypeVal"; Id=21,22,23,24} `
+        | Select-Object -First $a4 `
+        | Group-Object -Property Id, MachineName, UserId -NoElement `
+        | Sort-Object -Property Count -Descending `
+        | Format-Table -AutoSize
+    }
 
-        Write-Host "21 - RDP Logon   22 - RDP ShellStart   23 - RDP Logoff   24 - RDP SessionDisconnect"
-        Write-Host ""
-        Write-Host "Get-Winevent @{$TypeKey=""$TypeVal""; Id=21, 22, 23, 24}"
+    Write-Host "21 - RDP Logon   22 - RDP ShellStart   23 - RDP Logoff   24 - RDP SessionDisconnect"
+    Write-Host ""
+    Write-Host "Get-Winevent @{$TypeKey=""$TypeVal""; Id=21, 22, 23, 24}"
 }
+
+# 7. MS Defender
+function Invoke-Mde {
+    param (
+        [string]$local:a1,  # System/File
+        [string]$local:a2,  # Log Type
+        [string]$local:a3,  # Detail/Stats
+        [string]$local:a4   # CountOptionalParameters
+    )
+
+    [string] $local:TypeKey = ""
+    [string] $local:TypeVal = ""
+
+    $TypeKey, $TypeVal = Set-SecurityLogType $a1 $a2
+
+    # Log Detail 
+    if ($a3 -eq 1) {
+        Get-Winevent @{ $TypeKey = "$TypeVal"; Id=1116,1117,5001} `
+        | Select-Object -First $a4 `
+        | Select-Object TimeCreated, Id, MachineName, UserId, `
+        @{Label='User'; Expression={$_.Properties[19].Value}}, `
+        @{Label='Malware'; Expression={$_.Properties[7].Value}}, `
+        @{Label='Path'; Expression={$_.Properties[21].Value}} ` 
+        | Format-Table -AutoSize
+    }    
+
+    # Log Stats
+    if ($a3 -eq 2) {
+        Get-Winevent @{ $TypeKey = "$TypeVal"; Id=1116,1117,5001} `
+        | Select-Object -First $a4 `
+        | Group-Object -Property Id, MachineName, UserId -NoElement `
+        | Sort-Object -Property Count -Descending `
+        | Format-Table -AutoSize
+    }    
+
+    Write-Host "1116 - Detected Malware   1117 - Took Action   5001 - Defender Disabled"
+    Write-Host ""
+    Write-Host "Get-Winevent @{$TypeKey=""$TypeVal""; Id=1116,1117,5001}"    
+
+}
+
 
 function Get-Menu1 {
     [string] $local:ans1 = ""
@@ -336,18 +382,18 @@ function Get-Menu1 {
     Write-Host "[0] Quit            [4] Service Created"
     Write-Host "[1] Logon           [5] Account Change"
     Write-Host "[2] Logon/Logoff    [6] Remote Desktop"
-    Write-Host "[3] Process"
+    Write-Host "[3] Process         [7] MS Defender"
 
     $ans2 = Read-Host "Entry"
 
     if ( $ans2 -eq "0" ) { Clear-Host; Write-Host "Bye"; `
         Return "0", "0" }        
-    elseif ($ans2 -notin @(1,2,3,4,5,6)) {
-        while ($ans2 -notin @(1,2,3,4,5,6)) {
+    elseif ($ans2 -notin @(1,2,3,4,5,6,7)) {
+        while ($ans2 -notin @(1,2,3,4,5,6,7)) {
             Clear-Host
             Write-Host "Not a correct choice:"
             Write-Host "[1] Logon [2] Logon/Logoff [3] Process [4] Service Created"
-            Write-Host "[5] Account Change [5] Remote Desktop"
+            Write-Host "[5] Account Change [6] Remote Desktop  [7] MS Defender"
             $ans2 = Read-Host "Entry"
         }
     }                
@@ -429,6 +475,10 @@ function Get-LoadLog() {
 
         if ($ans2 -eq 6) {
             Invoke-Rdp $ans1 $ans2 $ans3 $ans4
+        }
+
+        if ($ans2 -eq 7) {
+            Invoke-Mde $ans1 $ans2 $ans3 $ans4
         }
 
         $ans3, $ans4 = Get-Menu2
