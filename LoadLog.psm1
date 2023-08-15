@@ -71,7 +71,7 @@ function Invoke-LogonLog {
         Get-Winevent @{ $TypeKey = "$TypeVal"; Id=4624} `
         | Where-Object {$_.Message -notmatch "Logon Type:\s+5"} `
         | Select-Object -First $a4 `
-        | Select-Object TimeCreated, Id, `
+        | Select-Object TimeCreated, Id, UserId, MachineName, `
         @{Label='LogonType'; Expression={$_.Properties[8].Value}}, `
         @{Label='ProcessName'; Expression={$_.Properties[9].Value}}, `
         @{Label='UserName'; Expression={$_.Properties[5].Value}}, `
@@ -86,7 +86,7 @@ function Invoke-LogonLog {
         Get-Winevent @{ $TypeKey = "$TypeVal"; Id=4624} `
         | Where-Object {$_.Message -notmatch "Logon Type:\s+5"} `
         | Select-Object -First $a4 `
-        | Select-Object Id, `
+        | Select-Object Id, UserId, MachineName,`
         @{Label='LogonType'; Expression={$_.Properties[8].Value}}, `
         @{Label='ProcessName'; Expression={$_.Properties[9].Value}}, `
         @{Label='UserName'; Expression={$_.Properties[5].Value}} `
@@ -123,7 +123,7 @@ function Invoke-LogonOthLog {
         Get-Winevent @{ $TypeKey = "$TypeVal"; Id=4625,4634,4647,4672,4779} `
         | Where-Object {$_.Message -notmatch "Logon Type:\s+5"} `
         | Select-Object -First $a4 `
-        | Select-Object TimeCreated, Id, TaskDisplayName, `
+        | Select-Object TimeCreated, Id, TaskDisplayName, MachineName, `
         @{Label='AccountName'; Expression={$_.Properties[1].Value}}, `
         @{Label='AccountDomain'; Expression={$_.Properties[2].Value}}, `
         @{Label='LogonId'; Expression={$_.Properties[3].Value}}, `
@@ -136,7 +136,7 @@ function Invoke-LogonOthLog {
     if ($a3 -eq 2) {
         Get-Winevent @{ $TypeKey = "$TypeVal"; Id=4625,4634,4647,4672,4779} `
         | Select-Object -First $a4 `
-        | Select-Object Id, `
+        | Select-Object Id, TaskDisplayName, MachineName,`
         @{Label='AccountName'; Expression={$_.Properties[1].Value}}, `
         @{Label='LogonType'; Expression={$_.Properties[4].Value}} `
         | Group-Object -Property Id, AccountName, LogonType -NoElement `
@@ -170,10 +170,11 @@ function Invoke-ProcLog {
     if ($a3 -eq 1) {
         Get-Winevent @{ $TypeKey = "$TypeVal"; Id=4688} `
         | Select-Object -First $a4 `
-        | Select-Object TimeCreated, Id, ProcessId, TaskDisplayName , `
+        | Select-Object TimeCreated, Id, ProcessId, MachineName, `
         @{Label='AccountName'; Expression={$_.Properties[1].Value}}, `
         @{Label='AccountDomain'; Expression={$_.Properties[2].Value}}, `
         @{Label='LogonId'; Expression={$_.Properties[3].Value}}, `
+        @{Label='ProcessCmdLine'; Expression={$_.Properties[8].Value}}, `
         @{Label='ProcessName'; Expression={$_.Properties[5].Value}}
         | Format-Table -AutoSize
         
@@ -183,7 +184,8 @@ function Invoke-ProcLog {
         if ($a3 -eq 2) {
             Get-Winevent @{ $TypeKey = "$TypeVal"; Id=4688} `
             | Select-Object -First $a4 `
-            | Select-Object Id, `
+            | Select-Object Id, TaskDisplayName, MachineName, `
+            @{Label='ProcessCmdLine'; Expression={$_.Properties[8].Value}}, `
             @{Label='ProcessName'; Expression={$_.Properties[5].Value}} `
             | Group-Object -Property Id, ProcessName -NoElement `
             | Sort-Object -Property Count -Descending    
@@ -214,7 +216,7 @@ function Invoke-SrvcLog {
     if ($a3 -eq 1) {
         Get-Winevent @{ $TypeKey = "$TypeVal"; Id=7030,7045} `
         | Select-Object -First $a4 `
-        | Select-Object TimeCreated, Id, ProcessId, Level, ProviderName, `
+        | Select-Object TimeCreated, Id, ProcessId, Level, MachineName, ProviderName, `
         @{Label='ServiceName'; Expression={$_.Properties[0].Value}}, `
         @{Label='ImagePath'; Expression={$_.Properties[1].Value}}
         | Format-Table -AutoSize
@@ -225,7 +227,8 @@ function Invoke-SrvcLog {
     if ($a3 -eq 2) {
         Get-Winevent @{ $TypeKey = "$TypeVal"; Id=7030,7045} `
         | Select-Object -First $a4 `
-        | Select-Object Id, Level, ProviderName, @{Label='ServiceName'; Expression={$_.Properties[0].Value}} `
+        | Select-Object Id, Level, MachineName, ProviderName, `
+        @{Label='ServiceName'; Expression={$_.Properties[0].Value}} `
         | Group-Object -Property Id, Level, ProviderName, ServiceName -NoElement `
         | Sort-Object -Property Count -Descending `
         | Format-Table -AutoSize
@@ -255,7 +258,13 @@ function Invoke-AcctLog {
     if ($a3 -eq 1) {
         Get-Winevent @{ $TypeKey = "$TypeVal"; Id=4720,4722, 4727, 4728, 4732, 4735, 4737, 4738, 4755} `
         | Select-Object -First $a4 `
-        | Select-Object TimeCreated, Id
+        | Select-Object TimeCreated, Id, MachineName, `
+        @{Label='AcctName'; Expression={$_.Properties[4].Value}}, `
+        @{Label='AcctSecId'; Expression={$_.Properties[3].Value}}, `
+        @{Label='AcctDomain'; Expression={$_.Properties[5].Value}}, `
+        @{Label='GroupName'; Expression={$_.Properties[0].Value}}, `
+        @{Label='GroupSecId'; Expression={$_.Properties[2].Value}}, `
+        @{Label='GroupDomain'; Expression={$_.Properties[1].Value}} `
         | Format-Table -AutoSize
     }
 
@@ -263,7 +272,7 @@ function Invoke-AcctLog {
     if ($a3 -eq 2) {
         Get-Winevent @{ $TypeKey = "$TypeVal"; Id=4720,4722, 4727, 4728, 4732, 4735, 4737, 4738, 4755} `
         | Select-Object -First $a4 `
-        | Group-Object -Property Id
+        | Group-Object -Property Id, MachineName `
         | Sort-Object -Property Count -Descending `
         | Format-Table -AutoSize
     }
